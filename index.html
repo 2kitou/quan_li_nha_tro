@@ -30,12 +30,6 @@
             font-weight: 600;
             transition: all 0.2s ease-in-out;
             cursor: pointer;
-            line-height: 1; /* Ensure button height is consistent */
-        }
-         .btn-sm {
-             padding: 0.5rem 0.75rem; /* Smaller padding for month buttons */
-             font-size: 0.875rem;
-             height: 2.5rem; /* Match input height (p-2 + border) */
         }
         .btn-primary {
             background-color: #3b82f6;
@@ -147,7 +141,7 @@
                 <button id="message-close-btn" class="btn btn-primary">Đã hiểu</button>
             </div>
         </div>
-
+        
         <div id="confirm-modal" class="modal-backdrop">
             <div class="modal-content text-center">
                 <h3 id="confirm-title" class="text-xl font-bold mb-4">Xác nhận</h3>
@@ -192,13 +186,11 @@
             </div>
             <div>
                 <label for="month-select" class="block text-sm font-medium text-gray-700">Chọn Tháng</label>
-                <div class="mt-1 flex items-center">
-                    <button id="prev-month-btn" class="btn btn-secondary btn-sm rounded-r-none border border-r-0 border-gray-300"><i data-lucide="chevron-left" class="h-4 w-4 pointer-events-none"></i></button>
-                    <input type="text" id="month-select" class="block w-32 border-gray-300 shadow-sm p-2 text-center focus:ring-blue-500 focus:border-blue-500 rounded-none" placeholder="MM/YYYY">
-                    <button id="next-month-btn" class="btn btn-secondary btn-sm rounded-l-none border border-l-0 border-gray-300"><i data-lucide="chevron-right" class="h-4 w-4 pointer-events-none"></i></button>
-                </div>
+                <input type="text" id="month-select" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm p-2" placeholder="MM/YYYY">
             </div>
             <button id="manage-locations-btn" class="btn btn-secondary self-end"><i data-lucide="map-pin" class="mr-2 h-5 w-5"></i>Quản lý Khu vực</button>
+            <!-- Bỏ nút Save thủ công -->
+            <!-- <button id="save-data-btn" class="btn btn-success self-end"><i data-lucide="save" class="mr-2 h-5 w-5"></i>Lưu Dữ Liệu</button> -->
         </div>
 
 
@@ -246,7 +238,7 @@
                     </div>
                     <div id="room-list" class="space-y-4"></div>
                 </div>
-
+                
                 <div class="card p-6">
                      <div class="flex flex-wrap justify-between items-center mb-4 border-b pb-2 gap-4">
                         <h2 class="text-xl font-bold text-gray-800 flex items-center">
@@ -278,10 +270,10 @@
             locations: [],
             appState: {
                 currentLocationId: null,
-                currentMonth: '', // Format YYYY-MM
+                currentMonth: '',
             }
         };
-
+        
         const ui = {
             // Modals
             loadingModal: document.getElementById('loading-modal'),
@@ -304,9 +296,8 @@
             // Controls
             locationSelect: document.getElementById('location-select'),
             monthSelect: document.getElementById('month-select'),
-            prevMonthBtn: document.getElementById('prev-month-btn'), // Nút tháng trước
-            nextMonthBtn: document.getElementById('next-month-btn'), // Nút tháng sau
             manageLocationsBtn: document.getElementById('manage-locations-btn'),
+            // saveDataBtn: document.getElementById('save-data-btn'), // Bỏ nút Save
             savingIndicator: document.getElementById('saving-indicator'), // Chỉ báo lưu mới
             currentLocationName: document.getElementById('current-location-name'),
             // Settings
@@ -326,7 +317,7 @@
             imageUpload: document.getElementById('image-upload'),
             processImageBtn: document.getElementById('process-image-btn'),
         };
-
+        
         // --- UTILS ---
         const formatCurrency = (value) => new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value) || 0);
         const showModal = (modal) => modal.classList.add('show');
@@ -338,7 +329,7 @@
         const formatMonthToDisplay = (yyyy_mm) => {
             if (!yyyy_mm || !/^\d{4}-\d{2}$/.test(yyyy_mm)) return '';
             const [year, month] = yyyy_mm.split('-');
-            return `${String(month).padStart(2, '0')}/${year}`; // Ensure MM/YYYY
+            return `${month}/${year}`;
         };
 
         const parseDisplayToMonth = (mm_yyyy) => {
@@ -396,7 +387,7 @@
 
 
         const getCurrentLocation = () => state.locations.find(loc => loc.id === state.appState.currentLocationId);
-
+        
         const getMonthData = (room, month) => {
             if (!room.monthlyReadings) room.monthlyReadings = {};
             if (!room.monthlyReadings[month]) room.monthlyReadings[month] = {};
@@ -413,11 +404,11 @@
             if (Object.keys(monthData).length === 0) {
                 const prevMonthString = getPreviousMonth(month);
                 const prevMonthData = getMonthData(room, prevMonthString);
-
+                
                 monthData.oldElec = prevMonthData.newElec ?? null;
                 monthData.oldWater = prevMonthData.newWater ?? null;
-                monthData.rent = room.rent ?? null;
-
+                monthData.rent = room.rent ?? null; 
+                
                 const previousBill = prevMonthData.finalBill ?? 0;
                 const previousPaid = prevMonthData.amountPaid ?? 0;
                 monthData.previousBalance = previousBill - previousPaid;
@@ -429,7 +420,7 @@
                 monthData.customFeeValues = {};
                 isModified = true;
             }
-
+            
             location.settings.customFees.forEach(fee => {
                if (monthData.customFeeValues[fee.name] === undefined) {
                    monthData.customFeeValues[fee.name] = fee.price ?? null;
@@ -443,16 +434,9 @@
         const getPreviousMonth = (month) => {
             if (!month) return null;
             const [year, m] = month.split('-').map(Number);
-            const prevDate = new Date(year, m - 2, 15); // Month is 0-indexed for Date object
+            const prevDate = new Date(year, m - 2, 15);
             return `${prevDate.getFullYear()}-${String(prevDate.getMonth() + 1).padStart(2, '0')}`;
         };
-
-        const getNextMonth = (month) => {
-            if (!month) return null;
-            const [year, m] = month.split('-').map(Number);
-            const nextDate = new Date(year, m, 15); // Month is 0-indexed, m represents next month
-            return `${nextDate.getFullYear()}-${String(nextDate.getMonth() + 1).padStart(2, '0')}`;
-        }
 
         // --- DATA STORAGE LOGIC (Google Sheets & LocalStorage Fallback with Debounce) ---
         let debounceTimeout = null;
@@ -470,49 +454,39 @@
 
         // Hàm lưu dữ liệu tự động (debounced)
         function triggerSave() {
-            console.log("triggerSave called"); // Debug log
             clearTimeout(debounceTimeout);
             debounceTimeout = setTimeout(async () => {
-                console.log("Debounce timeout finished, attempting save..."); // Debug log
                 if (isLocalMode) {
                     localStorage.setItem('boardingHouseData_local', JSON.stringify(state));
-                    console.log("Auto-saved (Local)");
+                    console.log("Auto-saved (Local)"); // Log nhỏ để biết đã lưu
                     return;
                 }
 
                 if (!SCRIPT_URL) {
                     console.error("SCRIPT_URL is not configured.");
-                    return;
+                    return; // Không làm gì nếu URL chưa có
                 }
-
-                ui.savingIndicator.textContent = "Đang lưu..."; // Indicate saving start
+                
+                // Hiển thị chỉ báo đang lưu kín đáo
                 ui.savingIndicator.classList.add('show');
-
+                
                 try {
                     const cleanState = JSON.parse(JSON.stringify(state, (key, value) => value === undefined ? null : value));
-
+                    
                     const response = await fetch(SCRIPT_URL, {
                         method: 'POST',
                         body: JSON.stringify(cleanState),
                         headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-                        // mode: 'no-cors' // Bỏ mode no-cors để có thể nhận phản hồi lỗi (nếu có)
                     });
-
-                    // Check if response indicates success (Apps Script usually redirects on success)
-                    // A simple check if the fetch didn't throw is often enough,
-                    // but more robust checking might involve checking response.type or headers if possible.
                     console.log("Auto-saved (Google Sheet)");
-                     ui.savingIndicator.textContent = "Đã lưu!"; // Indicate saving finished
 
                 } catch (error) {
                     console.error("Error auto-saving data to Google Sheet:", error);
+                    // Hiển thị lỗi nếu lưu tự động thất bại
                     showMessage("Lỗi Tự Động Lưu", "Không thể tự động lưu dữ liệu. Vui lòng kiểm tra kết nối mạng hoặc thử lại sau. Lỗi: " + error.message);
-                    ui.savingIndicator.textContent = "Lỗi!"; // Indicate error
                 } finally {
-                     // Hide indicator after a short delay
-                     setTimeout(() => {
-                        ui.savingIndicator.classList.remove('show');
-                     }, 1500); // Giữ lại 1.5s
+                    // Ẩn chỉ báo sau khi lưu xong (hoặc lỗi)
+                     setTimeout(() => ui.savingIndicator.classList.remove('show'), 500); // Giữ lại 0.5s để người dùng thấy
                 }
             }, DEBOUNCE_DELAY);
         }
@@ -529,9 +503,9 @@
                 const response = await fetch(SCRIPT_URL);
                 if (!response.ok) throw new Error(`Lỗi mạng: ${response.statusText}`);
                 const data = await response.json();
-
+                
                 if (data.error) throw new Error(data.error);
-
+                
                 if (data && Object.keys(data).length > 0) {
                     state.locations = data.locations || [];
                     state.appState = data.appState || state.appState;
@@ -544,9 +518,8 @@
                          state.appState.currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
                     }
                 }
-                 // Luôn gọi createDefaultLocation nếu không có location nào, nó sẽ tự updateUI
                  if (state.locations.length === 0) {
-                    createDefaultLocation();
+                    createDefaultLocation(); // Sẽ triggerSave
                 } else {
                     updateUIFromState(); // Cập nhật UI sau khi tải xong
                 }
@@ -585,9 +558,8 @@
                     console.error("Could not parse local data:", e);
                 }
             }
-             // Luôn gọi createDefaultLocation nếu không có location nào
-             if (state.locations.length === 0) {
-                createDefaultLocation();
+            if (state.locations.length === 0) {
+                createDefaultLocation(); // Sẽ triggerSave
             } else {
                 updateUIFromState(); // Cập nhật UI sau khi tải xong
             }
@@ -602,33 +574,31 @@
             };
             state.locations.push(newLocation);
             state.appState.currentLocationId = newLocation.id;
-            updateUIFromState(); // Cập nhật UI ngay
             triggerSave(); // Gọi lưu tự động sau khi tạo
+            updateUIFromState();
         }
 
         // --- RENDER FUNCTIONS ---
         function updateUIFromState() {
-             if (!state || !state.appState) {
-                 console.error("State is not ready for UI update.");
-                 return;
-             }
-
+             if (!state || !state.appState) return;
+            
             ui.monthSelect.value = formatMonthToDisplay(state.appState.currentMonth);
 
             ui.locationSelect.innerHTML = state.locations.map(loc => `<option value="${loc.id}" ${loc.id === state.appState.currentLocationId ? 'selected' : ''}>${loc.name}</option>`).join('');
-
+            
             const location = getCurrentLocation();
             if (!location) {
                 ui.settingsContent.innerHTML = `<p class="text-center text-gray-500">Vui lòng tạo một khu vực để bắt đầu.</p>`;
                 ui.currentLocationName.textContent = '';
-                ui.roomList.innerHTML = '<p class="text-center text-gray-500">Vui lòng chọn hoặc tạo khu vực.</p>';
-                ui.billResults.innerHTML = '<p class="text-center text-gray-500">Vui lòng chọn hoặc tạo khu vực.</p>';
+                ui.roomList.innerHTML = '';
+                ui.billResults.innerHTML = '';
                 return;
             }
 
             ui.currentLocationName.textContent = location.name;
             renderSettings(location);
-            renderRooms(location); // This will trigger renderBills via calculateAllBtn.click()
+            renderRooms(location);
+            // renderBills(location); // Bỏ gọi renderBills ở đây vì renderRooms sẽ gọi nó nếu cần
         }
 
         function renderSettings(location) {
@@ -659,6 +629,8 @@
                    <div id="custom-fees-container" class="space-y-2">${feesHtml}</div>
                    <button id="add-fee-btn" class="btn btn-secondary w-full mt-2 text-sm py-2"><i data-lucide="plus" class="mr-2 h-4 w-4"></i>Thêm Phí Mới</button>
                 </div>
+                <!-- Bỏ nút Lưu Cài Đặt -->
+                <!-- <button id="update-settings-btn" class="btn btn-primary w-full"><i data-lucide="check" class="mr-2 h-5 w-5"></i>Cập nhật Cài Đặt (Chưa Lưu)</button> -->
             `;
             lucide.createIcons();
         }
@@ -667,18 +639,18 @@
              ui.roomList.innerHTML = '';
             if (!location.rooms || location.rooms.length === 0) {
                 ui.roomList.innerHTML = `<p class="text-center text-gray-500">Chưa có phòng nào. Nhấn "Thêm Phòng" để bắt đầu.</p>`;
-                renderBills(location);
+                renderBills(location); // Vẫn gọi renderBills để xóa hóa đơn cũ nếu không còn phòng
                 return;
             }
 
-            let needsUISync = false; // Flag if sync happened
+            let needsUIUpdateOnly = false;
             location.rooms.forEach((room, index) => {
                 if (syncAndInitializeMonthData(room, state.appState.currentMonth)) {
-                    needsUISync = true;
+                    needsUIUpdateOnly = true;
                 }
 
                 const monthData = getMonthData(room, state.appState.currentMonth);
-
+                
                 const customFeesHtml = location.settings.customFees.map(fee => `
                     <div>
                         <label class="block text-sm font-medium text-gray-600">${fee.name}</label>
@@ -714,7 +686,7 @@
                 ui.roomList.appendChild(roomDiv);
             });
 
-             // Always render bills after rendering rooms
+            // If sync happened or rooms rendered, always re-render bills
             renderBills(location);
 
             lucide.createIcons();
@@ -723,11 +695,11 @@
         function renderBills(location) {
              ui.calculateAllBtn.click(); // Trigger calculation which will render bills
         }
-
+        
         // --- EVENT HANDLERS ---
         ui.locationSelect.addEventListener('change', (e) => {
             state.appState.currentLocationId = e.target.value;
-            triggerSave();
+            triggerSave(); // Lưu tự động khi đổi khu vực
             updateUIFromState();
         });
 
@@ -736,7 +708,7 @@
             const newMonth = parseDisplayToMonth(displayValue);
 
             if (!newMonth) {
-                if(displayValue !== '') {
+                if(displayValue !== '') { 
                     showMessage('Lỗi Định Dạng', 'Vui lòng nhập tháng theo định dạng MM/YYYY, ví dụ: 10/2025.');
                 }
                 e.target.value = formatMonthToDisplay(state.appState.currentMonth);
@@ -746,70 +718,44 @@
             if (newMonth === state.appState.currentMonth) return;
 
             state.appState.currentMonth = newMonth;
-
+            
             const location = getCurrentLocation();
             if (location && location.rooms) {
                 location.rooms.forEach(room => {
                     syncAndInitializeMonthData(room, newMonth);
                 });
             }
-            triggerSave();
+            triggerSave(); // Lưu tự động khi đổi tháng
             updateUIFromState();
         });
 
-        // Event listener cho nút tháng trước
-        ui.prevMonthBtn.addEventListener('click', () => {
-            const current = state.appState.currentMonth;
-            if (!current) return;
-            const prev = getPreviousMonth(current);
-            if (prev) {
-                state.appState.currentMonth = prev;
-                const location = getCurrentLocation();
-                if (location && location.rooms) {
-                    location.rooms.forEach(room => syncAndInitializeMonthData(room, prev));
-                }
-                triggerSave();
-                updateUIFromState();
-            }
-        });
-
-        // Event listener cho nút tháng sau
-        ui.nextMonthBtn.addEventListener('click', () => {
-            const current = state.appState.currentMonth;
-            if (!current) return;
-            const next = getNextMonth(current);
-            if (next) {
-                state.appState.currentMonth = next;
-                const location = getCurrentLocation();
-                if (location && location.rooms) {
-                    location.rooms.forEach(room => syncAndInitializeMonthData(room, next));
-                }
-                triggerSave();
-                updateUIFromState();
-            }
-        });
-
-
+        // Bỏ nút Save thủ công
+        // ui.saveDataBtn.addEventListener('click', saveDataExplicitly);
+        
         ui.settingsContent.addEventListener('click', (e) => {
              const location = getCurrentLocation();
             if (!location) return;
 
+            // Bỏ nút Update Settings cũ
+            // const updateSettingsBtn = e.target.closest('#update-settings-btn');
             const addFeeBtn = e.target.closest('#add-fee-btn');
             const deleteFeeBtn = e.target.closest('.delete-fee-btn');
 
+            /* if (updateSettingsBtn) { ... } // Bỏ logic nút Update */
             if (addFeeBtn) {
                 location.settings.customFees.push({ name: '', price: '' });
-                renderSettings(location);
-                // No triggerSave here, input will trigger it
+                renderSettings(location); // Chỉ render lại settings
+                // Không cần triggerSave ở đây, việc nhập tên/giá sẽ trigger
             } else if (deleteFeeBtn) {
                 const index = deleteFeeBtn.dataset.index;
                 location.settings.customFees.splice(index, 1);
-                renderSettings(location);
-                renderRooms(location); // Need to re-render rooms/bills
-                triggerSave();
+                renderSettings(location); // Render lại settings
+                renderRooms(location); // Render lại rooms/bills để bỏ phí
+                triggerSave(); // Lưu lại sau khi xóa phí
             }
         });
 
+        // Tự động lưu khi nhập liệu settings
         ui.settingsContent.addEventListener('input', (e) => {
             const location = getCurrentLocation();
             if (!location) return;
@@ -824,14 +770,13 @@
                 changed = true;
             } else if (e.target.classList.contains('custom-fee-input')) {
                 const { index, field } = e.target.dataset;
-                 // Ensure the fee exists before trying to access its properties
-                 if (location.settings.customFees[index]) {
-                    const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
-                    location.settings.customFees[index][field] = value;
-                    changed = true;
-                 }
+                const value = e.target.type === 'number' ? parseFloat(e.target.value) : e.target.value;
+                if (location.settings.customFees[index]) {
+                   location.settings.customFees[index][field] = value;
+                }
+                changed = true;
             }
-
+            
             if(changed) triggerSave();
         });
 
@@ -841,14 +786,25 @@
             if (!location) return showMessage("Lỗi", "Vui lòng chọn hoặc tạo một khu vực trước.");
 
             const count = parseInt(ui.bulkAddRoomCount.value, 10);
-            if (isNaN(count) || count <= 0) { /* ... */ }
+            if (isNaN(count) || count <= 0) {
+                return showMessage("Lỗi", "Vui lòng nhập một số lượng phòng hợp lệ (lớn hơn 0).");
+            }
 
             if (!location.rooms) location.rooms = [];
-
-            for (let i = 0; i < count; i++) { /* ... */ }
-
-            ui.bulkAddRoomCount.value = '';
-            triggerSave();
+            
+            for (let i = 0; i < count; i++) {
+                const roomNumber = location.rooms.length + 1;
+                const newRoom = {
+                    id: crypto.randomUUID(),
+                    name: `Phòng ${roomNumber}`,
+                    rent: location.settings.defaultRent,
+                    monthlyReadings: {}
+                };
+                location.rooms.push(newRoom);
+            }
+            
+            ui.bulkAddRoomCount.value = ''; 
+            triggerSave(); // Lưu sau khi thêm nhiều phòng
             updateUIFromState();
         });
 
@@ -857,22 +813,26 @@
             if (!location) return showMessage("Lỗi", "Vui lòng chọn hoặc tạo một khu vực trước.");
 
             if (!location.rooms) location.rooms = [];
-            const newRoom = { /* ... */ };
+            const newRoom = {
+                id: crypto.randomUUID(),
+                name: `Phòng ${location.rooms.length + 1}`,
+                rent: location.settings.defaultRent,
+                monthlyReadings: {}
+            };
             location.rooms.push(newRoom);
-            triggerSave();
+            triggerSave(); // Lưu sau khi thêm 1 phòng
             updateUIFromState();
         });
 
         // Tự động lưu khi nhập liệu phòng
         ui.roomList.addEventListener('input', (e) => {
             if (e.target.classList.contains('room-input')) {
-                // Logic to update state remains the same
                 const { index, field, feeName } = e.target.dataset;
                 const value = e.target.type === 'number' ? (e.target.value === '' ? '' : parseFloat(e.target.value)) : e.target.value;
                 const location = getCurrentLocation();
-                if (!location || !location.rooms || !location.rooms[index]) return;
+                if (!location || !location.rooms || !location.rooms[index]) return; 
                 const room = location.rooms[index];
-
+                
                 if (field === 'name') {
                     room.name = value;
                 } else {
@@ -903,7 +863,7 @@
                         const location = getCurrentLocation();
                         if (location && location.rooms && location.rooms[roomIndex]){
                            location.rooms.splice(roomIndex, 1);
-                           triggerSave();
+                           triggerSave(); // Lưu lại sau khi xóa
                            updateUIFromState();
                         }
                     }
@@ -914,11 +874,12 @@
         ui.calculateAllBtn.addEventListener('click', () => {
              ui.billResults.innerHTML = '';
             const location = getCurrentLocation();
-            if (!location || !location.rooms || location.rooms.length === 0) { /* ... */ }
+            if (!location || !location.rooms || location.rooms.length === 0) {
+                 ui.billResults.innerHTML = '<p class="text-center text-gray-500">Không có phòng nào để tính toán.</p>';
+                 return;
+            }
 
             let grandTotal = 0;
-            let stateNeedsSaving = false; // Flag to check if finalBill needs saving
-
             location.rooms.forEach(room => {
                 const monthData = getMonthData(room, state.appState.currentMonth);
                 const previousBalance = parseFloat(monthData.previousBalance) || 0;
@@ -926,46 +887,85 @@
                 const oldWater = parseFloat(monthData.oldWater) || 0, newWater = parseFloat(monthData.newWater) || 0;
                 const rent = parseFloat(monthData.rent ?? room.rent) || 0;
 
-                if (newElec > 0 && newElec < oldElec || newWater > 0 && newWater < oldWater) { /* ... error handling ... */ return; }
+                if (newElec > 0 && newElec < oldElec || newWater > 0 && newWater < oldWater) {
+                     const billDiv = document.createElement('div');
+                     billDiv.className = 'card p-4 bg-red-50 border-red-200';
+                     billDiv.innerHTML = `<p class="font-bold text-red-700">${room.name}: Lỗi! Chỉ số mới nhỏ hơn chỉ số cũ.</p>`;
+                     ui.billResults.appendChild(billDiv); 
+                     return; 
+                }
 
-                const elecUsed = (newElec >= oldElec) ? newElec - oldElec : 0;
-                const waterUsed = (newWater >= oldWater) ? newWater - oldWater : 0;
+                const elecUsed = (newElec >= oldElec) ? newElec - oldElec : 0; // Sửa lỗi tính toán
+                const waterUsed = (newWater >= oldWater) ? newWater - oldWater : 0; // Sửa lỗi tính toán
                 const elecCost = elecUsed * location.settings.electricity;
                 const waterCost = waterUsed * location.settings.water;
 
 
                 let customFeesTotal = 0;
                 let customFeesHtml = '';
-                if (monthData.customFeeValues) { /* ... fee calculation ... */ }
-
+                if (monthData.customFeeValues) {
+                     for (const feeName in monthData.customFeeValues) {
+                        const feeExistsInSettings = location.settings.customFees.some(f => f.name === feeName);
+                        if(feeExistsInSettings) {
+                            const feeValue = parseFloat(monthData.customFeeValues[feeName]) || 0;
+                            if (feeValue > 0) {
+                                customFeesTotal += feeValue;
+                                customFeesHtml += `<p><strong>${feeName}:</strong> ${formatCurrency(feeValue)}</p>`;
+                            }
+                        }
+                    }
+                }
+                
                 const totalThisMonth = elecCost + waterCost + rent + customFeesTotal;
                 const finalTotal = totalThisMonth + previousBalance;
                 grandTotal += totalThisMonth;
 
-                // Cập nhật finalBill vào state VÀ KIỂM TRA THAY ĐỔI
-                if (monthData.finalBill !== finalTotal) {
-                   monthData.finalBill = finalTotal;
-                   stateNeedsSaving = true; // Mark state as changed
-                }
-
+                // Cập nhật finalBill vào state ngay khi tính toán
+                monthData.finalBill = finalTotal;
 
                 let paymentStatusHtml = '';
-                const amountPaid = monthData.amountPaid;
+                const amountPaid = monthData.amountPaid; 
                 let balance = null;
 
-                 if (amountPaid !== null && amountPaid !== undefined && !isNaN(parseFloat(amountPaid))) { /* ... payment status calc ... */ }
-                 else { /* ... */ }
+                 if (amountPaid !== null && amountPaid !== undefined && !isNaN(parseFloat(amountPaid))) {
+                    balance = finalTotal - parseFloat(amountPaid);
+                    if (Math.abs(balance) < 1) { 
+                        paymentStatusHtml = `<p class="text-sm font-semibold text-green-600">Đã thanh toán đủ</p>`;
+                    } else if (balance > 0) {
+                        paymentStatusHtml = `<p class="text-sm font-semibold text-red-600">Còn nợ: ${formatCurrency(balance)}</p>`;
+                    } else {
+                        paymentStatusHtml = `<p class="text-sm font-semibold text-blue-600">Trả dư: ${formatCurrency(-balance)}</p>`;
+                    }
+                } else {
+                    paymentStatusHtml = `<p class="text-sm text-gray-500">Chưa ghi nhận thanh toán.</p>`;
+                }
 
 
                 const billDiv = document.createElement('div');
                 billDiv.className = 'card p-4';
                 billDiv.innerHTML = `
                     <h3 class="font-bold text-lg text-blue-600">${room.name}</h3>
-                    <!-- ... bill details ... -->
+                    <div class="mt-2 text-sm text-gray-700 space-y-1">
+                        <p><strong>Tiền phòng:</strong> ${formatCurrency(rent)}</p>
+                        ${customFeesHtml}
+                        <p><strong>Điện:</strong> ${elecUsed.toFixed(1)} kWh x ${formatCurrency(location.settings.electricity)} = <strong>${formatCurrency(elecCost)}</strong></p>
+                        <p><strong>Nước:</strong> ${waterUsed.toFixed(1)} m³ x ${formatCurrency(location.settings.water)} = <strong>${formatCurrency(waterCost)}</strong></p>
+                    </div>
+                    <hr class="my-2">
+                    <div class="text-right space-y-1 text-sm">
+                        <p><strong>Tổng tháng này:</strong> ${formatCurrency(totalThisMonth)}</p>
+                        <p><strong>Nợ/Dư kỳ trước:</strong> ${formatCurrency(previousBalance)}</p>
+                    </div>
                     <p class="text-right font-bold text-lg mt-1">Tổng cần thanh toán: <span class="text-green-600">${formatCurrency(finalTotal)}</span></p>
                     <hr class="my-2">
                     <div class="mt-2 space-y-2">
-                         <!-- ... payment buttons ... -->
+                        <p class="text-sm font-medium text-gray-700">Ghi nhận thanh toán:</p>
+                        <div class="flex flex-wrap gap-2">
+                            <button data-room-id="${room.id}" data-final-total="${finalTotal}" class="payment-btn btn-paid-full flex-grow btn btn-primary text-sm py-1 px-2">Trả Đủ</button>
+                            <button data-room-id="${room.id}" data-final-total="${finalTotal}" class="payment-btn btn-in-debt flex-grow btn btn-secondary text-sm py-1 px-2">Nợ</button>
+                            <button data-room-id="${room.id}" data-final-total="${finalTotal}" class="payment-btn btn-overpaid flex-grow btn btn-secondary text-sm py-1 px-2">Trả Dư</button>
+                             <button data-room-id="${room.id}" class="payment-btn btn-clear-payment flex-grow btn btn-danger text-sm py-1 px-2">Xóa TT</button> <!-- Nút xóa thanh toán -->
+                        </div>
                         <div class="mt-2 text-center">
                             ${paymentStatusHtml}
                         </div>
@@ -973,13 +973,15 @@
                 `;
                 ui.billResults.appendChild(billDiv);
             });
-
-             if (grandTotal > 0 || (location.rooms && location.rooms.length > 0)) { /* ... grand total display ... */ }
-
-             // Chỉ trigger save nếu finalBill thực sự thay đổi
-             if(stateNeedsSaving) {
-                 triggerSave();
+            
+             if (grandTotal > 0 || (location.rooms && location.rooms.length > 0)) { 
+                 const totalDiv = document.createElement('div');
+                 totalDiv.className = 'card p-4 mt-6 bg-gray-100';
+                 totalDiv.innerHTML = `<h3 class="text-center font-bold text-xl">Tổng doanh thu tháng này (Chưa gồm nợ cũ): <span class="text-indigo-600">${formatCurrency(grandTotal)}</span></h3>`;
+                 ui.billResults.appendChild(totalDiv);
              }
+             // Trigger save sau khi tính toán xong (vì finalBill có thể đã thay đổi)
+             triggerSave();
         });
 
 
@@ -995,43 +997,177 @@
             if (!location || !location.rooms) return;
             const room = location.rooms.find(r => r.id === roomId);
             if (!room) return;
-
+            
             const monthData = getMonthData(room, state.appState.currentMonth);
 
             // Hàm nội bộ để cập nhật state và rerender bills VÀ trigger save
             const updatePaymentStateAndSave = (paidAmount) => {
-                // Chỉ trigger save nếu giá trị thực sự thay đổi
-                if (monthData.amountPaid !== paidAmount) {
-                    monthData.amountPaid = paidAmount;
-                    triggerSave(); // Kích hoạt lưu tự động
-                    ui.calculateAllBtn.click(); // Re-render bills để cập nhật trạng thái
-                } else {
-                     ui.calculateAllBtn.click(); // Vẫn re-render để UI nhất quán
-                }
+                monthData.amountPaid = paidAmount;
+                triggerSave(); // Kích hoạt lưu tự động
+                ui.calculateAllBtn.click(); // Re-render bills để cập nhật trạng thái
             }
 
             if (target.classList.contains('btn-paid-full')) {
                 updatePaymentStateAndSave(finalTotalNum);
+            } 
+            else if (target.classList.contains('btn-in-debt')) {
+                showInput('Nhập số tiền CÒN NỢ', 'VD: 50000', (debtAmountStr) => {
+                    const debtAmount = parseFloat(debtAmountStr);
+                    if (isNaN(debtAmount) || debtAmount < 0) {
+                        return showMessage('Lỗi', 'Số tiền nợ không hợp lệ.');
+                    }
+                    updatePaymentStateAndSave(finalTotalNum - debtAmount); 
+                });
             }
-            else if (target.classList.contains('btn-in-debt')) { /* ... showInput ... updatePaymentStateAndSave(finalTotalNum - debtAmount) ... */ }
-            else if (target.classList.contains('btn-overpaid')) { /* ... showInput ... updatePaymentStateAndSave(finalTotalNum + overpaidAmount) ... */ }
-            else if (target.classList.contains('btn-clear-payment')) {
+            else if (target.classList.contains('btn-overpaid')) {
+                showInput('Nhập số tiền TRẢ DƯ', 'VD: 100000', (overpaidAmountStr) => {
+                    const overpaidAmount = parseFloat(overpaidAmountStr);
+                    if (isNaN(overpaidAmount) || overpaidAmount < 0) {
+                        return showMessage('Lỗi', 'Số tiền trả dư không hợp lệ.');
+                    }
+                    updatePaymentStateAndSave(finalTotalNum + overpaidAmount);
+                });
+            }
+             else if (target.classList.contains('btn-clear-payment')) {
                 updatePaymentStateAndSave(null); // Gán null để xóa và lưu lại
             }
         });
-
+        
         // Location Management Modal Logic (cập nhật state và trigger save)
-        ui.manageLocationsBtn.addEventListener('click', () => { /* ... show modal ... */ });
-        ui.addLocationBtn.addEventListener('click', () => { /* ... create new location ... triggerSave() ... updateUI ... */ });
-        ui.locationsList.addEventListener('input', (e) => { /* ... update state ... triggerSave() ... */ });
-        ui.locationsList.addEventListener('click', (e) => { /* ... delete logic ... triggerSave() ... updateUI ... */ });
-        ui.locationsCloseBtn.addEventListener('click', () => { /* ... hide modal ... updateUI ... */ }); // Không cần save riêng
+        ui.manageLocationsBtn.addEventListener('click', () => {
+             ui.locationsList.innerHTML = state.locations.map(loc => `
+                <div class="flex items-center gap-2 p-2 border rounded-md">
+                    <input type="text" value="${loc.name}" data-id="${loc.id}" class="location-name-input flex-grow border-0 focus:ring-1 focus:ring-blue-300 rounded-sm">
+                    <button class="delete-location-btn text-red-500 hover:text-red-700" data-id="${loc.id}"><i data-lucide="trash-2" class="h-5 w-5 pointer-events-none"></i></button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+            showModal(ui.locationsModal);
+        });
+        ui.addLocationBtn.addEventListener('click', () => {
+              const name = ui.newLocationName.value.trim();
+             if (!name) return showMessage('Lỗi', 'Vui lòng nhập tên khu vực.');
+             
+             const newLocation = { /* ... */ 
+                id: crypto.randomUUID(),
+                name: name,
+                settings: { electricity: 3500, water: 15000, defaultRent: 1500000, customFees: [] },
+                rooms: []
+             };
+             state.locations.push(newLocation);
+             state.appState.currentLocationId = newLocation.id; 
+
+             ui.newLocationName.value = '';
+             hideModal(ui.locationsModal);
+             triggerSave(); // Lưu sau khi thêm khu vực
+             updateUIFromState(); 
+        });
+        ui.locationsList.addEventListener('input', (e) => {
+              if (e.target.classList.contains('location-name-input')) {
+                 const loc = state.locations.find(l => l.id === e.target.dataset.id);
+                 if (loc) {
+                    loc.name = e.target.value; 
+                    // Tên đổi -> cần trigger save
+                    triggerSave();
+                 }
+             }
+        });
+        ui.locationsList.addEventListener('click', (e) => {
+              const deleteBtn = e.target.closest('.delete-location-btn');
+             if(deleteBtn) {
+                 if (state.locations.length <= 1) { /* ... */ return; }
+                 const locationIdToDelete = deleteBtn.dataset.id;
+                 showConfirm( /* ... */
+                     () => {
+                        state.locations = state.locations.filter(l => l.id !== locationIdToDelete);
+                        if (state.appState.currentLocationId === locationIdToDelete) {
+                            state.appState.currentLocationId = state.locations.length > 0 ? state.locations[0].id : null;
+                        }
+                        triggerSave(); // Lưu sau khi xóa khu vực
+                        hideModal(ui.locationsModal);
+                        updateUIFromState();
+                     }
+                 );
+             }
+        });
+
+        ui.locationsCloseBtn.addEventListener('click', () => {
+              hideModal(ui.locationsModal);
+             // Không cần save riêng, vì input đã trigger save
+             updateUIFromState(); // Update UI nếu tên đã đổi trong state
+        });
         ui.messageCloseBtn.addEventListener('click', () => hideModal(ui.messageModal));
 
         // --- IMAGE PROCESSING ---
-        async function processImageWithGemini(base64ImageData) { /* ... unchanged ... */ }
-        function updateRoomsWithImageData(data) { /* ... unchanged ... triggerSave() ... updateUI ... */ }
-        ui.processImageBtn.addEventListener('click', () => { /* ... unchanged ... */ });
+        async function processImageWithGemini(base64ImageData) {
+            showLoading("Đang phân tích hình ảnh...");
+            const apiKey = "AIzaSyDyVjmMgSDJmW0l4PwXdbQn32bVRJGTRUg"; // <--- DÁN API KEY GEMINI CỦA BẠN VÀO ĐÂY
+            
+            if (!apiKey) { /* ... */ }
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
+            const systemPrompt = `Phân tích ảnh ghi chú tay về chỉ số điện nước nhà trọ ở Việt Nam. Trích xuất số phòng (roomName), chỉ số điện mới (newElec), và chỉ số nước mới (newWater). Luôn trả về dữ liệu tuân thủ theo JSON schema đã cung cấp. Nếu không tìm thấy giá trị, hãy dùng null.`;
+
+            const payload = { /* ... */ 
+                 systemInstruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ parts: [{ text: "Trích xuất dữ liệu từ ảnh này:" }, { inlineData: { mimeType: "image/jpeg", data: base64ImageData } }] }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: { /* ... */ 
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                roomName: { type: "STRING", description: "Số phòng hoặc tên phòng" },
+                                newElec: { type: "NUMBER", description: "Chỉ số điện mới (kWh)" },
+                                newWater: { type: "NUMBER", description: "Chỉ số nước mới (m³)" },
+                            },
+                             required: ["roomName"]
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+                if (!response.ok) throw new Error(`API error: ${response.statusText}`);
+                const result = await response.json();
+                const text = result.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (!text) throw new Error("Không nhận được dữ liệu hợp lệ từ API.");
+                updateRoomsWithImageData(JSON.parse(text));
+            } catch (error) { /* ... */ } 
+            finally { hideLoading(); }
+        }
+
+        function updateRoomsWithImageData(data) {
+             const location = getCurrentLocation();
+            if (!location) return showMessage("Lỗi", "Không tìm thấy khu vực hiện tại.");
+            if (!Array.isArray(data)) return showMessage("Lỗi dữ liệu", "Định dạng dữ liệu trả về không đúng.");
+            
+            let updatedCount = 0;
+            data.forEach(item => {
+                const searchName = item.roomName.trim().toLowerCase();
+                const room = location.rooms.find(r => r.name.trim().toLowerCase().includes(searchName));
+
+                if (room) {
+                    const monthData = getMonthData(room, state.appState.currentMonth);
+                    if (item.newElec !== null && item.newElec !== undefined) monthData.newElec = item.newElec;
+                    if (item.newWater !== null && item.newWater !== undefined) monthData.newWater = item.newWater;
+                    updatedCount++;
+                }
+            });
+            triggerSave(); // Lưu sau khi xử lý ảnh xong
+            updateUIFromState(); 
+            showMessage("Đã xử lý ảnh", `Đã cập nhật dữ liệu cho ${updatedCount} phòng từ hình ảnh. Dữ liệu đang được tự động lưu.`);
+        }
+
+        ui.processImageBtn.addEventListener('click', () => {
+             const file = ui.imageUpload.files[0];
+            if (!file) return showMessage("Thông báo", "Vui lòng chọn một tệp ảnh trước.");
+            const reader = new FileReader();
+            reader.onloadend = () => processImageWithGemini(reader.result.replace('data:', '').replace(/^.+,/, ''));
+            reader.readAsDataURL(file);
+        });
 
 
         // --- INIT ---
@@ -1041,11 +1177,12 @@
              if (!state.appState.currentMonth) {
                 state.appState.currentMonth = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}`;
             }
-
+            
             await loadDataFromGoogleSheet(); // Load data first
-
-             // updateUIFromState() được gọi bên trong loadData hoặc createDefaultLocation
-             // if (!isLocalMode) { updateUIFromState(); } // Không cần dòng này nữa
+            
+             if (!isLocalMode) { 
+                 updateUIFromState(); 
+             }
         }
 
         main();
