@@ -1189,7 +1189,7 @@
             
             // --- MODIFIED FOR ENVIRONMENT ---
             // API key sẽ được môi trường cung cấp tự động, không cần khai báo cứng nữa.
-            const apiKey = ""; 
+            const apiKey = "AIzaSyBB3cOs88kNaeygpp_XprJo-vYEY2qRNTo"; 
             
             const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${apiKey}`;
             const systemPrompt = `Phân tích ảnh ghi chú tay về chỉ số điện nước nhà trọ ở Việt Nam. Trích xuất số phòng (roomName), chỉ số điện mới (newElec), và chỉ số nước mới (newWater). Luôn trả về dữ liệu tuân thủ theo JSON schema đã cung cấp. Nếu không tìm thấy giá trị, hãy dùng null.`;
